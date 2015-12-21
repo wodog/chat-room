@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Room Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    body {
+        background: #337AB7;
+        padding: 20px;
+        font-size: 20px;
+    }
+
+    .container h1 {
+        text-align: center;
+        color: white;
+        margin-top: 50px;
+    }
+
+    #room {
+        margin-top: 50px;
+        border: 2px solid white;
+        border-radius: 15px;
+    }
+
+    #console {
+        overflow: auto;
+        height: 300px;
+    }
+
+    #dashboard {}
+
+    #control {
+        border: 2px solid white;
+        border-radius: 15px;
+        margin-top: 50px;
+    }
+
+    #bar {
+        margin-top: 10px;
+    }
+
+    #dashboard {
+        border-bottom: 1px solid #D2E1EC;
+    }
+
+    .username-msg {
+        color: orange;
+    }
+
+    .connect-msg {
+        color: green;
+    }
+
+    .disconnect-msg {
+        color: red;
+    }
+
+    .send-msg {
+        color: #888
+    }
+
+    textarea {
+        resize: none;
+        width: 100%;
+        height: 90px;
+        overflow: hidden;
+        /*没超出内容则不显示滚条*/
+        /*overflow:hidden; 永远不显示滚动条*/
+    }
+
+    .btn1 {
+        background: rgba(139, 195, 74, 0.71);
+        font-weight: 2px;
+        overflow: hidden;
+        margin: 10px 10px;
+        color: #05B4CA;
+        width: 100px;
+    }
+
+    .btn1:hover {
+        background: rgb(139, 195, 74);
+        color: #03899A;
+    }
+
+    .container {
+        overflow: hidden;
+    }
+
+    @media (max-width: 1600px) {
+        body {
+            font-size: 20x;
+        }
+        #room {
+            margin-top: 15px;
+        }
+        .container h1 {
+            margin-top: 5px;
+        }
+        #console {
+            margin-top: 10px;
+            height: 200px;
+        }
+        #control {
+            margin-top: 10px;
+        }
+        textarea {
+            height: 65px;
+        }
+    }
+    </style>
+    <script src="./js/socket.io.js"></script>
+    <script src="./js/moment.min.js"></script>
+    <script src="./js/jquery.1.11.1.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script>
+    $(function() {
+      // show nick name
+        $('#nickname').html('<span style="color:' + getUsernameColor(userName) + '">' + userName + '<span>');
+        var rename = function() {
+            var input = $('<input  id="rename_input" value="' + userName + '" maxlength="14">');
+            $('#nickname').html(input);
+            input.trigger('focus');
+
+            $(window).unbind('keydown')
+            input.click(function() {
+                return false;
+            });
+            input.blur(function() {
+                $('#nickname').html('<span style="color:' + getUsernameColor(input.val()) + '">' + input.val() + '<span>');
+                userName = input.val();
+                $(window).on('keydown',keydown)
+            });
+        };
+        $('#rename').on('click', rename);
+    });
+    </script>
+    <script>
+    var COLORS = [
+        '#e21400', '#91580f', '#f8a700', '#f78b00',
+        '#58dc00', '#287b00', '#a8f07a', '#4ae8c4',
+        '#3b88eb', '#3824aa', '#a700ff', '#d300e7'
+    ];
+
+    // Gets the color of a username through our hash function
+    function getUsernameColor(username) {
+        // Compute hash code
+        var hash = 7;
+        for (var i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + (hash << 5) - hash;
+        }
+        // Calculate color
+        var index = Math.abs(hash % COLORS.length);
+        return COLORS[index];
+    }
+
+    var socket = io();
+
+    var userName = 'user' + Math.floor((Math.random() * 1000) + 1);
+
+    socket.on('connect', function() {
+        output('<span class="connect-msg">欢迎来到Room Chat</span>');
+    });
+
+    socket.on('roomMass', function(data) {
+        output('<span class="username-msg" style="color:' + getUsernameColor(data.userName) + '"><strong>' + data.userName + '</strong></span> ' + data.message);
+        console.log(data);
+    });
+
+    socket.on('disconnect', function() {
+        output('<span class="disconnect-msg">The client has disconnected!</span>');
+    });
+
+    socket.on('manNum', function(data) {
+      console.log(data);
+        $('#num').html(data);
+    });
+
+    function sendMessage() {
+        var message = $('#msg').val();
+        if (!message) {
+            return false;
+        }
+        $('#msg').val('');
+        var userName = $('#nickname').text();
+        socket.emit('roomMass', {userName: userName, message: message});
+    }
+
+    function output(message) {
+        var currentTime = "<span class='time'>" + moment().format('HH:mm:ss') + "</span>";
+        var element = $("<div>" + currentTime + " " + message + "</div>");
+        $('#console').append(element);
+        document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+    }
+
+    $(window).on('keydown', keydown);
+    function keydown(event){
+          // Auto-focus the current input when a key is typed
+          if (!(event.ctrlKey || event.metaKey || event.altKey)) {
+              $('#msg').focus();
+          }
+          // When the client hits ENTER on their keyboard
+          if (event.which === 13) {
+              sendMessage();
+              return false;
+          }
+    }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Room Chat</h1>
+        <div id="room" class="well">
+            <div id="dashboard" class="row">
+                <div class="col-xs-2">
+                    <p>在线人数 <span id="num"></span></p>
+                </div>
+            </div>
+            <div id="console">
+            </div>
+        </div>
+        <div id="control" class="well">
+            <div>
+                <p>昵称: <strong id="nickname"></strong></p>
+            </div>
+            <textarea id="msg"  placeholder="Type something..."></textarea>
+            <div id="bar" class="row">
+                <div class="text-right">
+                    <button type="button" onClick="sendMessage()" class="btn btn-lg btn1">Send</button>
+                    <button type="button" id="rename" class="btn btn-lg btn1">Rename</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

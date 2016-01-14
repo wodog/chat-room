@@ -43,6 +43,6 @@ io.on('connection', function(socket){
 
 
 // app.use()
-http.listen(3000, function(){
+http.listen(80, function(){
   console.log('listening on *:3000');
 });
